@@ -24,14 +24,30 @@ def construct_index(directory_path):
 
     return index
 
+messages = []
+
 def chatbot(input_text):
+    messages.append({"role": "user", "content": input_text})
     index = GPTSimpleVectorIndex.load_from_disk('index.json')
-    response = index.query(input_text, response_mode="compact")
-    return response.response
+    response_text = index.query(input_text, response_mode="compact")
+    messages.append({"role": "assistant", "content": response_text.response})
+
+    # Generate an HTML output for the conversation
+    conversation = '<div style="display: flex; flex-direction: column;">'
+    for message in messages:
+        role = message["role"]
+        content = message["content"]
+        if role == "user":
+            conversation += f'<div style="align-self: flex-end; background-color: #007bff; color: white; border-radius: 10px; padding: 5px 10px; margin: 5px;">{content}</div>'
+        elif role == "assistant":
+            conversation += f'<div style="align-self: flex-start; background-color: #e0e0e0; color: black; border-radius: 10px; padding: 5px 10px; margin: 5px;">{content}</div>'
+    conversation += "</div>"
+    
+    return conversation
 
 iface = gr.Interface(fn=chatbot,
                      inputs=gr.components.Textbox(lines=7, label="Enter your text"),
-                     outputs="text",
+                     outputs=gr.outputs.HTML(label="Conversation"),
                      title="Custom-trained AI Chatbot")
 
 index = construct_index("docs")
